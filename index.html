@@ -587,31 +587,37 @@
 
         async function loadAccounts() {
             const accounts = await dbGet('accounts'); const marketers = await dbGet('marketers');
-            // Group accounts by name
+            if (!accounts || accounts.length === 0) {
+                document.getElementById('accounts-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-gray);padding:30px;">لا توجد حسابات</td></tr>';
+                return;
+            }
+            // Group by name + marketerId
             const grouped = {};
             accounts.forEach(a => {
-                if (!grouped[a.name]) {
-                    grouped[a.name] = { name: a.name, platforms: [], marketerId: a.marketerId, isActive: a.isActive, ids: [] };
+                const mId = a.marketerId || a['marketerId'];
+                const key = (a.name || '') + '_' + mId;
+                if (!grouped[key]) {
+                    grouped[key] = { name: a.name, platforms: [], marketerId: mId, isActive: a.isActive, ids: [] };
                 }
-                grouped[a.name].platforms.push(a.platform);
-                grouped[a.name].ids.push(a.id);
+                if (a.platform) grouped[key].platforms.push(a.platform);
+                grouped[key].ids.push(a.id);
             });
             document.getElementById('accounts-table-body').innerHTML = Object.values(grouped).map(g => {
-                const marketer = marketers.find(m => m.id === g.marketerId);
-                const platformBadges = g.platforms.map(p => {
+                const marketer = marketers.find(m => m.id == g.marketerId);
+                const platformBadges = g.platforms.length > 0 ? g.platforms.map(p => {
                     const color = p === 'TikTok' ? '#69C9D0' : '#E4405F';
                     return `<span style="background: ${color}; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 4px;">${p}</span>`;
-                }).join('');
+                }).join('') : '<span style="color:var(--text-gray);font-size:0.8rem;">TikTok + Instagram</span>';
                 return `<tr><td>${g.ids[0]}</td><td><strong>${g.name}</strong></td><td>${platformBadges}</td><td>${marketer ? marketer.name : '-'}</td>
                 <td><span class="badge ${g.isActive ? 'badge-active' : 'badge-inactive'}">${g.isActive ? 'نشط' : 'غير نشط'}</span></td>
                 <td><button class="btn btn-sm btn-dark" onclick="editAccount(${g.ids[0]})"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-danger" onclick="deleteAccountGroup('${g.name}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                <button class="btn btn-sm btn-danger" onclick="deleteAccountGroup('${g.name}', ${g.marketerId})"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('');
         }
-        async function deleteAccountGroup(name) {
+        async function deleteAccountGroup(name, marketerId) {
             if (confirm('حذف الحساب ' + name + ' من جميع المنصات؟')) {
                 const accounts = await dbGet('accounts');
-                const toDelete = accounts.filter(a => a.name === name);
+                const toDelete = accounts.filter(a => a.name === name && (a.marketerId == marketerId || a['marketerId'] == marketerId));
                 for (const a of toDelete) { await dbDelete('accounts', a.id); }
                 loadAccounts(); refreshDashboard();
             }
@@ -622,27 +628,38 @@
             e.preventDefault();
             const editId = document.getElementById('account-id').value;
             const editName = document.getElementById('account-edit-name').value;
-            const name = document.getElementById('account-name').value;
+            const name = document.getElementById('account-name').value.trim();
             const marketerId = parseInt(document.getElementById('account-marketer').value);
             const isActive = document.getElementById('account-active').checked;
-            if (editId && editName) {
-                // Edit mode: update all records with same name for this marketer
-                const allAccounts = await dbGet('accounts');
-                const toUpdate = allAccounts.filter(a => a.name === editName && a.marketerId === marketerId);
-                for (const a of toUpdate) {
-                    await dbUpdate('accounts', a.id, { name, marketerId, isActive });
+            if (!name || !marketerId) { alert('يرجى ملء جميع الحقول'); return; }
+            showLoading(true);
+            try {
+                if (editId && editName) {
+                    // Edit mode
+                    const allAccounts = await dbGet('accounts');
+                    const toUpdate = allAccounts.filter(a => a.name === editName && (a.marketerId == marketerId || a['marketerId'] == marketerId));
+                    for (const a of toUpdate) {
+                        await dbUpdate('accounts', a.id, { name, marketerId, isActive });
+                    }
+                    const hasTT = toUpdate.some(a => a.platform === 'TikTok');
+                    const hasIG = toUpdate.some(a => a.platform === 'Instagram');
+                    if (!hasTT) await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
+                    if (!hasIG) await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
+                } else {
+                    // Add mode: insert TikTok then Instagram
+                    const r1 = await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
+                    const r2 = await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
+                    if (!r1 || !r2) {
+                        alert('خطأ في حفظ الحساب — تحقق من إعدادات Supabase RLS');
+                        showLoading(false); return;
+                    }
                 }
-                // If no records existed yet for a platform, insert them
-                const hasTT = toUpdate.some(a => a.platform === 'TikTok');
-                const hasIG = toUpdate.some(a => a.platform === 'Instagram');
-                if (!hasTT) await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
-                if (!hasIG) await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
-            } else {
-                // Add mode: insert both platforms
-                await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
-                await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
-            }
-            closeModal('account-modal'); loadAccounts(); refreshDashboard();
+                showSyncStatus('تم حفظ الحساب بنجاح', 'success');
+                closeModal('account-modal'); loadAccounts(); refreshDashboard();
+            } catch(err) {
+                console.error('saveAccount error:', err);
+                alert('خطأ: ' + err.message);
+            } finally { showLoading(false); }
         }
         async function editAccount(id) { const a = (await dbGet('accounts')).find(x => x.id === id); document.getElementById('account-id').value = a.id; document.getElementById('account-edit-name').value = a.name; document.getElementById('account-name').value = a.name; document.getElementById('account-active').checked = a.isActive; await loadAccountMarketers(); document.getElementById('account-marketer').value = a.marketerId; openModal('account-modal'); }
         async function deleteAccount(id) { if (confirm('حذف الحساب؟')) { await dbDelete('accounts', id); loadAccounts(); refreshDashboard(); } }
