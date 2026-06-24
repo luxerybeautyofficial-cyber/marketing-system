@@ -1,84 +1,133 @@
-# Marketing Performance Management System
+# نظام إدارة أداء التسويق 📊
 
-## نظام إدارة أداء التسويق
+نظام متكامل لإدارة وتتبع أداء المسوقين على منصات TikTok و Instagram، مبني باستخدام HTML/JS خالص مع Supabase كقاعدة بيانات سحابية.
 
-### طريقة الرفع على Vercel:
+---
 
-#### الطريقة 1: Vercel Drop (الأسهل)
-1. افتح: https://vercel.com/drop
-2. اسحب هذا المجلد بأكمله وأفلته في الصفحة
-3. اضغط Deploy
-4. خلال 30 ثانية، الموقع جاهز!
+## 🚀 الرفع على Vercel
 
-#### الطريقة 2: GitHub + Vercel
-1. ارفع هذا المجلد على GitHub
-2. اربط GitHub بـ Vercel
-3. اضغط Deploy
+### الطريقة الأولى: عبر GitHub (مُوصى بها)
 
-### ⚠️ تعديلات مهمة قبل الاستخدام:
+1. **ارفع المشروع على GitHub:**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   git push -u origin main
+   ```
 
-#### 1. إنشاء حساب Supabase:
-- ادخل إلى: https://supabase.com
-- سجل حساب جديد (مجاني)
-- أنشئ مشروع جديد
-- اذهب إلى Project Settings → API
-- انسخ: Project URL و anon public key
+2. **اربط GitHub بـ Vercel:**
+   - افتح [vercel.com](https://vercel.com) وسجل الدخول
+   - اضغط **"Add New Project"**
+   - اختر الـ Repository من GitHub
+   - اضغط **"Deploy"** — سيكتشف Vercel الإعدادات تلقائياً
 
-#### 2. إنشاء الجداول في Supabase:
+3. **بعد النشر:** ستحصل على رابط مثل `https://your-project.vercel.app`
 
-**جدول marketers:**
-- id (int8, Primary Key, Auto Increment)
-- name (text)
-- targetTikTok (int4, Default: 15)
-- targetInstagram (int4, Default: 15)
-- isActive (bool, Default: true)
-- createdDate (timestamptz, Default: now())
-
-**جدول accounts:**
-- id (int8, Primary Key, Auto Increment)
-- name (text)
-- platform (text)
-- marketerId (int8)
-- isActive (bool, Default: true)
-
-**جدول daily_reports:**
-- id (int8, Primary Key, Auto Increment)
-- reportDate (date)
-- marketerId (int8)
-- accountId (int8)
-- morningTikTok (int4, Default: 0)
-- morningInstagram (int4, Default: 0)
-- scheduledTikTok (int4, Default: 0)
-- scheduledInstagram (int4, Default: 0)
-- imageDesigns (int4, Default: 0)
-- aiVideos (int4, Default: 0)
-- notes (text)
-
-#### 3. تفعيل Auth:
-- اذهب إلى Authentication → Providers
-- فعّل Email
-- اذهب إلى URL Configuration
-- أضف: Site URL = رابط Vercel الخاص بك
-
-#### 4. تعديل الكود:
-افتح index.html وابحث عن:
-```javascript
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+### الطريقة الثانية: رفع مباشر بدون GitHub
+```bash
+npm i -g vercel
+vercel --prod
 ```
-واستبدلهم بقيمك من Supabase.
 
-### البيانات المدمجة:
-- 16 مسوق من ملف Excel
-- 18 حساب (36 مع المنصات)
-- مرتبطين بـ MarketerID
+---
 
-### المميزات:
-- ✅ تصميم أسود وذهبي
-- ✅ تسجيل دخول Supabase Auth
-- ✅ قاعدة بيانات سحابية
-- ✅ Dashboard مع KPIs
-- ✅ إدارة المسوقين والحسابات
-- ✅ تقارير يومية وشهرية
-- ✅ Leaderboard
-- ✅ حسابات تلقائية (Total, Performance%)
+## 🗄️ إعداد Supabase
+
+البيانات مربوطة مسبقاً. تأكد من إنشاء الجداول التالية في Supabase:
+
+### الجداول المطلوبة
+
+#### جدول `marketers`
+```sql
+CREATE TABLE marketers (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  "targetTikTok" INTEGER DEFAULT 15,
+  "targetInstagram" INTEGER DEFAULT 15,
+  "isActive" BOOLEAN DEFAULT true,
+  "createdDate" TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### جدول `accounts`
+```sql
+CREATE TABLE accounts (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  "marketerId" INTEGER REFERENCES marketers(id),
+  "isActive" BOOLEAN DEFAULT true
+);
+```
+
+#### جدول `daily_reports`
+```sql
+CREATE TABLE daily_reports (
+  id SERIAL PRIMARY KEY,
+  "marketerId" INTEGER REFERENCES marketers(id),
+  "accountId" INTEGER REFERENCES accounts(id),
+  "reportDate" DATE NOT NULL,
+  "morningTikTok" INTEGER DEFAULT 0,
+  "scheduledTikTok" INTEGER DEFAULT 0,
+  "morningInstagram" INTEGER DEFAULT 0,
+  "scheduledInstagram" INTEGER DEFAULT 0,
+  "imageDesigns" INTEGER DEFAULT 0,
+  "aiVideos" INTEGER DEFAULT 0,
+  notes TEXT,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### تفعيل Row Level Security (RLS)
+```sql
+-- تفعيل RLS على الجداول
+ALTER TABLE marketers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_reports ENABLE ROW LEVEL SECURITY;
+
+-- السماح للمستخدمين المسجلين بالقراءة والكتابة
+CREATE POLICY "authenticated users full access" ON marketers
+  FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "authenticated users full access" ON accounts
+  FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "authenticated users full access" ON daily_reports
+  FOR ALL USING (auth.role() = 'authenticated');
+```
+
+---
+
+## 🔐 بيانات الاتصال
+
+```
+SUPABASE_URL: https://gbqynlsuwkrnwopwfnwl.supabase.co
+SUPABASE_ANON_KEY: (موجودة في index.html)
+```
+
+---
+
+## 📦 هيكل المشروع
+
+```
+/
+├── index.html      ← التطبيق الكامل (HTML + CSS + JS)
+├── vercel.json     ← إعدادات Vercel للنشر
+└── README.md       ← هذا الملف
+```
+
+---
+
+## ✨ الميزات
+
+- 🔐 تسجيل دخول/خروج عبر Supabase Auth
+- 👥 إدارة المسوقين (إضافة/تعديل/حذف)
+- 📱 إدارة الحسابات (TikTok & Instagram)
+- 📝 تقارير يومية للأداء
+- 📊 لوحة تحكم تفاعلية
+- 🏆 ترتيب الأداء (Leaderboard)
+- 📅 تقارير شهرية
+- 🌙 واجهة عربية RTL داكنة
