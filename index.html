@@ -271,7 +271,7 @@
                 </div>
                 <div class="table-container">
                     <table class="data-table">
-                        <thead><tr><th>التاريخ</th><th>المسوق</th><th>الحساب</th><th>TikTok</th><th>Instagram</th><th>الإجمالي</th><th>الهدف</th><th>الأداء</th><th>التصنيف</th><th>إجراءات</th></tr></thead>
+                        <thead><tr><th>التاريخ</th><th>المسوق</th><th>الحساب</th><th>TT صباحي</th><th>TT مجدول</th><th>IG صباحي</th><th>IG مجدول</th><th>الإجمالي</th><th>الهدف</th><th>الأداء</th><th>التصنيف</th><th>إجراءات</th></tr></thead>
                         <tbody id="reports-table-body"></tbody>
                     </table>
                 </div>
@@ -333,10 +333,11 @@
             <div class="modal-header"><h3 class="modal-title">إضافة / تعديل حساب</h3><button class="modal-close" onclick="closeModal('account-modal')">&times;</button></div>
             <form id="account-form" onsubmit="saveAccount(event)">
                 <input type="hidden" id="account-id">
-                <div class="form-group"><label class="form-label">الاسم *</label><input type="text" class="form-input" id="account-name" required></div>
-                <div class="form-group"><label class="form-label">المنصة *</label><select class="form-select" id="account-platform" required><option value="TikTok">TikTok</option><option value="Instagram">Instagram</option></select></div>
+                <input type="hidden" id="account-edit-name">
+                <div class="form-group"><label class="form-label">اسم الحساب *</label><input type="text" class="form-input" id="account-name" required></div>
                 <div class="form-group"><label class="form-label">المسوق *</label><select class="form-select" id="account-marketer" required></select></div>
                 <div class="form-group"><label class="form-label"><input type="checkbox" id="account-active" checked> نشط</label></div>
+                <div style="background: rgba(212,175,55,0.08); border: 1px solid #B8860B; border-radius: 12px; padding: 12px; margin-bottom: 15px; font-size: 0.85rem; color: #F4E4BC;"><i class="fab fa-tiktok"></i> TikTok &nbsp;+&nbsp; <i class="fab fa-instagram"></i> Instagram — سيُضاف الحساب على المنصتين تلقائياً</div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;"><button type="button" class="btn btn-dark" onclick="closeModal('account-modal')">إلغاء</button><button type="submit" class="btn btn-gold">حفظ</button></div>
             </form>
         </div>
@@ -562,7 +563,7 @@
         }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function openModal(modalId) { document.getElementById(modalId).classList.add('active'); if (modalId === 'account-modal') loadAccountMarketers(); if (modalId === 'report-modal') { loadReportMarketers(); document.getElementById('report-date').value = new Date().toISOString().split('T')[0]; } }
-        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); document.getElementById(modalId).querySelector('form').reset(); document.getElementById('tiktok-fields').style.display = 'none'; document.getElementById('instagram-fields').style.display = 'none'; }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); const f = document.getElementById(modalId).querySelector('form'); if (f) f.reset(); if (document.getElementById('tiktok-fields')) document.getElementById('tiktok-fields').style.display = 'none'; if (document.getElementById('instagram-fields')) document.getElementById('instagram-fields').style.display = 'none'; document.getElementById('account-id').value = ''; document.getElementById('account-edit-name').value = ''; }
 
         async function loadMarketers() {
             const marketers = await dbGet('marketers');
@@ -618,12 +619,32 @@
         function filterAccounts() { const search = document.getElementById('account-search').value.toLowerCase(); document.querySelectorAll('#accounts-table-body tr').forEach(row => { row.style.display = row.cells[1].textContent.toLowerCase().includes(search) ? '' : 'none'; }); }
         async function loadAccountMarketers() { const marketers = await dbGet('marketers'); document.getElementById('account-marketer').innerHTML = marketers.filter(m => m.isActive).map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
         async function saveAccount(e) {
-            e.preventDefault(); const id = document.getElementById('account-id').value;
-            const data = { name: document.getElementById('account-name').value, platform: document.getElementById('account-platform').value, marketerId: parseInt(document.getElementById('account-marketer').value), isActive: document.getElementById('account-active').checked };
-            if (id) { await dbUpdate('accounts', id, data); } else { await dbInsert('accounts', data); }
+            e.preventDefault();
+            const editId = document.getElementById('account-id').value;
+            const editName = document.getElementById('account-edit-name').value;
+            const name = document.getElementById('account-name').value;
+            const marketerId = parseInt(document.getElementById('account-marketer').value);
+            const isActive = document.getElementById('account-active').checked;
+            if (editId && editName) {
+                // Edit mode: update all records with same name for this marketer
+                const allAccounts = await dbGet('accounts');
+                const toUpdate = allAccounts.filter(a => a.name === editName && a.marketerId === marketerId);
+                for (const a of toUpdate) {
+                    await dbUpdate('accounts', a.id, { name, marketerId, isActive });
+                }
+                // If no records existed yet for a platform, insert them
+                const hasTT = toUpdate.some(a => a.platform === 'TikTok');
+                const hasIG = toUpdate.some(a => a.platform === 'Instagram');
+                if (!hasTT) await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
+                if (!hasIG) await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
+            } else {
+                // Add mode: insert both platforms
+                await dbInsert('accounts', { name, platform: 'TikTok', marketerId, isActive });
+                await dbInsert('accounts', { name, platform: 'Instagram', marketerId, isActive });
+            }
             closeModal('account-modal'); loadAccounts(); refreshDashboard();
         }
-        async function editAccount(id) { const a = (await dbGet('accounts')).find(x => x.id === id); document.getElementById('account-id').value = a.id; document.getElementById('account-name').value = a.name; document.getElementById('account-platform').value = a.platform; document.getElementById('account-active').checked = a.isActive; await loadAccountMarketers(); document.getElementById('account-marketer').value = a.marketerId; openModal('account-modal'); }
+        async function editAccount(id) { const a = (await dbGet('accounts')).find(x => x.id === id); document.getElementById('account-id').value = a.id; document.getElementById('account-edit-name').value = a.name; document.getElementById('account-name').value = a.name; document.getElementById('account-active').checked = a.isActive; await loadAccountMarketers(); document.getElementById('account-marketer').value = a.marketerId; openModal('account-modal'); }
         async function deleteAccount(id) { if (confirm('حذف الحساب؟')) { await dbDelete('accounts', id); loadAccounts(); refreshDashboard(); } }
 
         async function loadReportMarketers() { const marketers = await dbGet('marketers'); document.getElementById('report-marketer').innerHTML = '<option value="">اختر</option>' + marketers.filter(m => m.isActive).map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
@@ -638,13 +659,10 @@
         }
         function showAccountPlatformFields() {
             const accountName = document.getElementById('report-account').value;
-            const marketerId = document.getElementById('report-marketer').value;
-            if (!accountName || !marketerId) return;
-            dbGet('accounts').then(accounts => {
-                const filtered = accounts.filter(a => a.marketerId == marketerId && a.name === accountName && a.isActive);
-                document.getElementById('tiktok-fields').style.display = filtered.some(a => a.platform === 'TikTok') ? 'block' : 'none';
-                document.getElementById('instagram-fields').style.display = filtered.some(a => a.platform === 'Instagram') ? 'block' : 'none';
-            });
+            if (!accountName) return;
+            // Always show both platforms since every account has TikTok + Instagram
+            document.getElementById('tiktok-fields').style.display = 'block';
+            document.getElementById('instagram-fields').style.display = 'block';
         }
 
         function calculateReportMetrics(report) {
@@ -667,31 +685,45 @@
             if (filterDate) filtered = filtered.filter(r => r.reportDate === filterDate);
             if (filterMarketer) filtered = filtered.filter(r => r.marketerId == filterMarketer);
 
-            // Group by date + account name (not by platform)
+            // Group by reportDate + marketerId + accountName to merge TikTok+Instagram rows back into one display row
             const grouped = {};
             filtered.forEach(r => {
                 const a = accounts.find(x => x.id === r.accountId);
                 const accountName = a ? a.name : 'Unknown';
                 const key = r.reportDate + '_' + r.marketerId + '_' + accountName;
                 if (!grouped[key]) {
-                    grouped[key] = { reportDate: r.reportDate, marketerId: r.marketerId, accountName: accountName, morningTT: 0, scheduledTT: 0, morningIG: 0, scheduledIG: 0, totalPosts: 0, ids: [] };
+                    grouped[key] = { reportDate: r.reportDate, marketerId: r.marketerId, accountName, morningTT: 0, scheduledTT: 0, morningIG: 0, scheduledIG: 0, ids: [] };
                 }
+                // Each record stores only one platform's data; accumulate both
                 grouped[key].morningTT += r.morningTikTok;
                 grouped[key].scheduledTT += r.scheduledTikTok;
                 grouped[key].morningIG += r.morningInstagram;
                 grouped[key].scheduledIG += r.scheduledInstagram;
-                grouped[key].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram;
                 grouped[key].ids.push(r.id);
             });
 
             document.getElementById('reports-table-body').innerHTML = Object.values(grouped).map(g => {
                 const m = marketers.find(x => x.id === g.marketerId);
+                const totalPosts = g.morningTT + g.scheduledTT + g.morningIG + g.scheduledIG;
                 const dailyTarget = 30;
-                const performancePercent = dailyTarget > 0 ? Math.round((g.totalPosts / dailyTarget) * 100) : 0;
+                const performancePercent = dailyTarget > 0 ? Math.round((totalPosts / dailyTarget) * 100) : 0;
                 let rating = 'Needs Follow Up', badgeClass = 'badge-followup';
                 if (performancePercent >= 100) { rating = 'Excellent'; badgeClass = 'badge-excellent'; }
                 else if (performancePercent >= 80) { rating = 'Good'; badgeClass = 'badge-good'; }
-                return `<tr><td>${g.reportDate}</td><td>${m ? m.name : '-'}</td><td><strong>${g.accountName}</strong></td><td>${g.morningTT}</td><td>${g.scheduledTT}</td><td>${g.morningIG}</td><td>${g.scheduledIG}</td><td><strong>${g.totalPosts}</strong></td><td>${dailyTarget}</td><td><strong>${performancePercent}%</strong></td><td><span class="badge ${badgeClass}">${rating}</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteReportGroup([${g.ids.join(',')}])"><i class="fas fa-trash"></i></button></td></tr>`;
+                return `<tr>
+                    <td>${g.reportDate}</td>
+                    <td>${m ? m.name : '-'}</td>
+                    <td><strong>${g.accountName}</strong></td>
+                    <td>${g.morningTT}</td>
+                    <td>${g.scheduledTT}</td>
+                    <td>${g.morningIG}</td>
+                    <td>${g.scheduledIG}</td>
+                    <td><strong>${totalPosts}</strong></td>
+                    <td>${dailyTarget}</td>
+                    <td><strong>${performancePercent}%</strong></td>
+                    <td><span class="badge ${badgeClass}">${rating}</span></td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteReportGroup([${g.ids.join(',')}])"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
             }).join('');
         }
         async function deleteReportGroup(ids) {
@@ -714,14 +746,19 @@
             const imageDesigns = parseInt(document.getElementById('report-images').value) || 0;
             const aiVideos = parseInt(document.getElementById('report-videos').value) || 0;
             const notes = document.getElementById('report-notes').value;
-            const tiktokAccount = allAccounts.find(a => a.platform === 'TikTok');
-            if (tiktokAccount && (morningTT > 0 || scheduledTT > 0)) {
-                await dbInsert('daily_reports', { reportDate, marketerId, accountId: tiktokAccount.id, morningTikTok: morningTT, morningInstagram: 0, scheduledTikTok: scheduledTT, scheduledInstagram: 0, imageDesigns: 0, aiVideos: 0, notes: notes + ' (TikTok)' });
-            }
-            const instaAccount = allAccounts.find(a => a.platform === 'Instagram');
-            if (instaAccount && (morningIG > 0 || scheduledIG > 0)) {
-                await dbInsert('daily_reports', { reportDate, marketerId, accountId: instaAccount.id, morningTikTok: 0, morningInstagram: morningIG, scheduledTikTok: 0, scheduledInstagram: scheduledIG, imageDesigns: imageDesigns, aiVideos: aiVideos, notes: notes + ' (Instagram)' });
-            }
+            // Use TikTok account ID as the primary record holder (or first available)
+            const primaryAccount = allAccounts.find(a => a.platform === 'TikTok') || allAccounts[0];
+            if (!primaryAccount) { alert('لا يوجد حساب مرتبط بهذا المسوق'); return; }
+            // Save one record with all 4 platform numbers
+            await dbInsert('daily_reports', {
+                reportDate, marketerId,
+                accountId: primaryAccount.id,
+                morningTikTok: morningTT,
+                scheduledTikTok: scheduledTT,
+                morningInstagram: morningIG,
+                scheduledInstagram: scheduledIG,
+                imageDesigns, aiVideos, notes
+            });
             closeModal('report-modal'); loadDailyReports(); refreshDashboard();
         }
         async function deleteReport(id) { if (confirm('حذف التقرير؟')) { await dbDelete('daily_reports', id); loadDailyReports(); refreshDashboard(); } }
