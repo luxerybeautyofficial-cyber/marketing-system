@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Performance - Supabase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style>
+        :root { --bg-dark: #0a0a0a; --bg-card: #1a1a1a; --bg-card-hover: #2d2d2d; --gold: #D4AF37; --gold-light: #F4E4BC; --gold-dark: #B8860B; --text-white: #ffffff; --text-gray: #888888; --success: #4CAF50; --warning: #FF9800; --danger: #F44336; --border-radius: 12px; --transition: all 0.3s ease; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg-dark); color: var(--text-white); min-height: 100vh; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+        .app-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-card); border-left: 2px solid var(--gold); padding: 20px 0; position: fixed; right: 0; top: 0; height: 100vh; overflow-y: auto; z-index: 1000; transition: var(--transition); }
+        .sidebar-header { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid var(--gold-dark); margin-bottom: 20px; }
+        .sidebar-header .logo { font-size: 2.5rem; color: var(--gold); margin-bottom: 10px; }
+        .sidebar-header h1 { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
+        .sidebar-header p { font-size: 0.75rem; color: var(--text-gray); margin-top: 5px; }
+        .nav-menu { list-style: none; padding: 0 15px; }
+        .nav-item { margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 15px; color: var(--text-gray); text-decoration: none; border-radius: var(--border-radius); transition: var(--transition); cursor: pointer; font-size: 0.95rem; }
+        .nav-link:hover, .nav-link.active { background: var(--bg-card-hover); color: var(--gold); border-right: 3px solid var(--gold); }
+        .nav-link i { width: 30px; font-size: 1.1rem; margin-left: 10px; }
+        .main-content { flex: 1; margin-right: 260px; padding: 20px 30px; min-height: 100vh; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid var(--gold); }
+        .page-title { font-size: 1.8rem; color: var(--gold); font-weight: 700; }
+        .page-subtitle { color: var(--text-gray); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--gold-dark); border-radius: var(--border-radius); padding: 20px; margin-bottom: 20px; transition: var(--transition); }
+        .card:hover { border-color: var(--gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-title { font-size: 1.1rem; color: var(--gold-light); font-weight: 600; }
+        .card-icon { width: 40px; height: 40px; background: var(--gold); color: var(--bg-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .card-value { font-size: 2rem; font-weight: 700; color: var(--gold); margin-top: 10px; }
+        .card-label { color: var(--text-gray); font-size: 0.85rem; }
+        .grid { display: grid; gap: 20px; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } .sidebar { width: 200px; } .main-content { margin-right: 200px; padding: 15px; } }
+        .btn { padding: 10px 24px; border: none; border-radius: var(--border-radius); cursor: pointer; font-family: 'Cairo', sans-serif; font-size: 0.9rem; font-weight: 600; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; }
+        .btn-gold { background: var(--gold); color: var(--bg-dark); }
+        .btn-gold:hover { background: var(--gold-light); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); }
+        .btn-dark { background: var(--bg-card-hover); color: var(--gold); border: 1px solid var(--gold); }
+        .btn-dark:hover { background: var(--gold); color: var(--bg-dark); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 6px; color: var(--gold-light); font-weight: 600; font-size: 0.9rem; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 12px 15px; background: var(--bg-card-hover); border: 1px solid var(--gold-dark); border-radius: var(--border-radius); color: var(--text-white); font-family: 'Cairo', sans-serif; font-size: 0.95rem; transition: var(--transition); }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); }
+        .form-textarea { min-height: 100px; resize: vertical; }
+        .table-container { overflow-x: auto; border-radius: var(--border-radius); border: 1px solid var(--gold-dark); }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { background: var(--bg-card-hover); color: var(--gold); padding: 14px; text-align: right; font-weight: 700; border-bottom: 2px solid var(--gold); }
+        .data-table td { padding: 12px 14px; border-bottom: 1px solid var(--bg-card-hover); color: var(--text-white); }
+        .data-table tr:hover td { background: rgba(212, 175, 55, 0.05); }
+        .data-table tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .badge-excellent { background: rgba(76, 175, 80, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .badge-good { background: rgba(255, 152, 0, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+        .badge-followup { background: rgba(244, 67, 54, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-active { background: rgba(76, 175, 80, 0.2); color: var(--success); }
+        .badge-inactive { background: rgba(136, 136, 136, 0.2); color: var(--text-gray); }
+        .progress-container { background: var(--bg-card-hover); border-radius: 10px; height: 20px; overflow: hidden; margin-top: 5px; }
+        .progress-bar { height: 100%; border-radius: 10px; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+        .progress-excellent { background: linear-gradient(90deg, var(--success), #66BB6A); }
+        .progress-good { background: linear-gradient(90deg, var(--warning), #FFB74D); }
+        .progress-followup { background: linear-gradient(90deg, var(--danger), #EF5350); }
+        .search-box { position: relative; margin-bottom: 20px; }
+        .search-box input { padding-right: 45px; }
+        .search-box i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--gold); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--bg-card); border: 2px solid var(--gold); border-radius: var(--border-radius); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 25px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--gold-dark); }
+        .modal-title { color: var(--gold); font-size: 1.3rem; }
+        .modal-close { background: none; border: none; color: var(--gold); font-size: 1.5rem; cursor: pointer; }
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .rank-1 { color: #FFD700; font-size: 1.5rem; }
+        .rank-2 { color: #C0C0C0; font-size: 1.3rem; }
+        .rank-3 { color: #CD7F32; font-size: 1.2rem; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-gray); }
+        .empty-state i { font-size: 4rem; color: var(--gold-dark); margin-bottom: 15px; }
+        .menu-toggle { display: none; position: fixed; top: 15px; right: 15px; z-index: 1001; background: var(--gold); color: var(--bg-dark); border: none; width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+        @media (max-width: 768px) { .menu-toggle { display: flex; align-items: center; justify-content: center; } .sidebar { transform: translateX(100%); width: 260px; } .sidebar.open { transform: translateX(0); } .main-content { margin-right: 0; } }
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: end; }
+        .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        .platform-section { background: var(--bg-card-hover); padding: 15px; border-radius: var(--border-radius); margin-bottom: 15px; }
+        .platform-tiktok { border-right: 3px solid #69C9D0; }
+        .platform-instagram { border-right: 3px solid #E4405F; }
+        .platform-title { font-weight: 700; margin-bottom: 10px; font-size: 1rem; }
+        .title-tiktok { color: #69C9D0; }
+        .title-instagram { color: #E4405F; }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; }
+        .loading-overlay.active { display: flex; }
+        .spinner { width: 50px; height: 50px; border: 3px solid var(--gold-dark); border-top: 3px solid var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sync-status { position: fixed; bottom: 20px; left: 20px; padding: 10px 20px; border-radius: var(--border-radius); font-size: 0.85rem; z-index: 3000; display: none; }
+        .sync-status.active { display: block; }
+        .sync-success { background: rgba(76, 175, 80, 0.9); color: white; }
+        .sync-error { background: rgba(244, 67, 54, 0.9); color: white; }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="color: var(--gold); margin-top: 15px; font-size: 1.1rem;">جاري الاتصال...</p>
+    </div>
+    <div class="sync-status sync-success" id="sync-status"></div>
+
+    <div id="login-page" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-card); border: 2px solid var(--gold); border-radius: var(--border-radius); padding: 40px; width: 90%; max-width: 400px; text-align: center;">
+            <div style="font-size: 3rem; color: var(--gold); margin-bottom: 15px;"><i class="fas fa-chart-line"></i></div>
+            <h1 style="color: var(--gold); font-size: 1.5rem; margin-bottom: 5px;">نظام إدارة أداء التسويق</h1>
+            <p style="color: var(--text-gray); margin-bottom: 30px;">Supabase Cloud</p>
+            <div id="login-error" style="color: var(--danger); margin-bottom: 15px; font-size: 0.9rem; display: none;"></div>
+            <div id="login-form">
+                <div class="form-group" style="text-align: right;">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="login-email" placeholder="أدخل بريدك" style="text-align: right;">
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <label class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-input" id="login-password" placeholder="أدخل كلمة المرور" style="text-align: right;">
+                </div>
+                <button class="btn btn-gold" style="width: 100%; margin-top: 10px;" onclick="doLogin()">
+                    <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                </button>
+                <div style="margin-top: 15px;">
+                    <a href="#" onclick="showRegisterForm()" style="color: var(--gold); font-size: 0.85rem;">إنشاء حساب جديد</a>
+                </div>
+            </div>
+            <div id="register-form" style="display: none;">
+                <div class="form-group" style="text-align: right;">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="register-email" placeholder="أدخل بريدك" style="text-align: right;">
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <label class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-input" id="register-password" placeholder="6 أحرف على الأقل" style="text-align: right;">
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <label class="form-label">تأكيد كلمة المرور</label>
+                    <input type="password" class="form-input" id="register-confirm" placeholder="أعد الإدخال" style="text-align: right;">
+                </div>
+                <button class="btn btn-gold" style="width: 100%; margin-top: 10px;" onclick="doRegister()">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب
+                </button>
+                <div style="margin-top: 15px;">
+                    <a href="#" onclick="showLoginForm()" style="color: var(--gold); font-size: 0.85rem;">لدي حساب</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><i class="fas fa-chart-line"></i></div>
+                <h1>نظام إدارة أداء التسويق</h1>
+                <p>Supabase Cloud</p>
+            </div>
+            <div style="padding: 0 15px 15px; text-align: center;">
+                <div id="user-email" style="color: var(--gold-light); font-size: 0.85rem; margin-bottom: 10px;"></div>
+                <div id="connection-status" style="color: var(--success); font-size: 0.75rem;"><i class="fas fa-circle" style="font-size: 0.5rem;"></i> متصل</div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a class="nav-link active" onclick="showPage('dashboard')"><i class="fas fa-tachometer-alt"></i><span>لوحة التحكم</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showPage('marketers')"><i class="fas fa-users"></i><span>المسوقين</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showPage('accounts')"><i class="fas fa-mobile-alt"></i><span>الحسابات</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showPage('daily-reports')"><i class="fas fa-edit"></i><span>التقارير اليومية</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showPage('reports')"><i class="fas fa-file-alt"></i><span>التقارير</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showPage('leaderboard')"><i class="fas fa-trophy"></i><span>ترتيب الأداء</span></a></li>
+            </ul>
+            <div style="padding: 15px; border-top: 1px solid var(--gold-dark); margin-top: 10px;">
+                <button class="btn btn-dark" style="width: 100%;" onclick="doLogout()">
+                    <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                </button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <section id="page-dashboard" class="page-section active">
+                <div class="page-header">
+                    <div><h2 class="page-title">لوحة التحكم</h2><p class="page-subtitle">نظرة عامة - <span style="color: var(--success);"><i class="fas fa-cloud"></i> Supabase</span></p></div>
+                    <button class="btn btn-gold" onclick="refreshDashboard()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                </div>
+                <div class="grid grid-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <div><div class="card-label">إجمالي منشورات اليوم</div><div class="card-value" id="dash-today-posts">0</div></div>
+                            <div class="card-icon"><i class="fas fa-calendar-day"></i></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div><div class="card-label">إجمالي منشورات الشهر</div><div class="card-value" id="dash-month-posts">0</div></div>
+                            <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div><div class="card-label">متوسط أداء الشهر</div><div class="card-value" id="dash-month-avg">0%</div></div>
+                            <div class="card-icon"><i class="fas fa-percentage"></i></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div><div class="card-label">المسوقين النشطين</div><div class="card-value" id="dash-active-marketers">0</div></div>
+                            <div class="card-icon"><i class="fas fa-users"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-3" style="margin-top: 20px;">
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fas fa-crown" style="color: var(--gold);"></i> أفضل مسوق</div></div>
+                        <div id="dash-best-marketer"><div class="empty-state"><i class="fas fa-crown"></i><p>لا توجد بيانات</p></div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> يحتاج متابعة</div></div>
+                        <div id="dash-worst-marketer"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>لا توجد بيانات</p></div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fas fa-mobile-alt" style="color: var(--gold);"></i> الحسابات النشطة</div></div>
+                        <div id="dash-active-accounts"><div style="text-align: center; padding: 20px;"><div class="card-value" id="dash-accounts-count">0</div><div class="card-label">حساب</div></div></div>
+                    </div>
+                </div>
+            </section>
+            <section id="page-marketers" class="page-section">
+                <div class="page-header">
+                    <div><h2 class="page-title">إدارة المسوقين</h2><p class="page-subtitle">إضافة وتعديل وحذف</p></div>
+                    <button class="btn btn-gold" onclick="openModal('marketer-modal')"><i class="fas fa-plus"></i> إضافة مسوق</button>
+                </div>
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" class="form-input" id="marketer-search" placeholder="بحث..." onkeyup="filterMarketers()"></div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr><th>#</th><th>الاسم</th><th>TikTok</th><th>Instagram</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+                        <tbody id="marketers-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="page-accounts" class="page-section">
+                <div class="page-header">
+                    <div><h2 class="page-title">إدارة الحسابات</h2><p class="page-subtitle">إضافة وتعديل وحذف</p></div>
+                    <button class="btn btn-gold" onclick="openModal('account-modal')"><i class="fas fa-plus"></i> إضافة حساب</button>
+                </div>
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" class="form-input" id="account-search" placeholder="بحث..." onkeyup="filterAccounts()"></div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr><th>#</th><th>الحساب</th><th>المنصات</th><th>المسوق</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                        <tbody id="accounts-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="page-daily-reports" class="page-section">
+                <div class="page-header">
+                    <div><h2 class="page-title">التقارير اليومية</h2><p class="page-subtitle">إدخال ومتابعة</p></div>
+                    <button class="btn btn-gold" onclick="openModal('report-modal')"><i class="fas fa-plus"></i> إضافة تقرير</button>
+                </div>
+                <div class="filter-bar">
+                    <div class="form-group"><label class="form-label">التاريخ</label><input type="date" class="form-input" id="report-filter-date" onchange="loadDailyReports()"></div>
+                    <div class="form-group"><label class="form-label">المسوق</label><select class="form-select" id="report-filter-marketer" onchange="loadDailyReports()"><option value="">الكل</option></select></div>
+                    <button class="btn btn-dark" onclick="clearReportFilter()"><i class="fas fa-times"></i> مسح</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr><th>التاريخ</th><th>المسوق</th><th>الحساب</th><th>TikTok</th><th>Instagram</th><th>الإجمالي</th><th>الهدف</th><th>الأداء</th><th>التصنيف</th><th>إجراءات</th></tr></thead>
+                        <tbody id="reports-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="page-reports" class="page-section">
+                <div class="page-header">
+                    <div><h2 class="page-title">التقارير</h2><p class="page-subtitle">استعراض التقارير</p></div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-day"></i> التقرير اليومي</div></div>
+                        <div class="form-group"><label class="form-label">التاريخ</label><input type="date" class="form-input" id="daily-report-date"></div>
+                        <button class="btn btn-gold" style="width: 100%; margin-top: 10px;" onclick="generateDailyReport()"><i class="fas fa-file-alt"></i> عرض</button>
+                        <div id="daily-report-result" style="margin-top: 20px;"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-alt"></i> التقرير الشهري</div></div>
+                        <div class="grid grid-2">
+                            <div class="form-group"><label class="form-label">الشهر</label><select class="form-select" id="monthly-report-month"><option value="1">يناير</option><option value="2">فبراير</option><option value="3">مارس</option><option value="4">أبريل</option><option value="5">مايو</option><option value="6">يونيو</option><option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option><option value="10">أكتوبر</option><option value="11">نوفمبر</option><option value="12">ديسمبر</option></select></div>
+                            <div class="form-group"><label class="form-label">السنة</label><input type="number" class="form-input" id="monthly-report-year" value="2024"></div>
+                        </div>
+                        <button class="btn btn-gold" style="width: 100%; margin-top: 10px;" onclick="generateMonthlyReport()"><i class="fas fa-file-alt"></i> عرض</button>
+                        <div id="monthly-report-result" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </section>
+            <section id="page-leaderboard" class="page-section">
+                <div class="page-header">
+                    <div><h2 class="page-title">ترتيب الأداء</h2><p class="page-subtitle">ترتيب المسوقين</p></div>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>الترتيب</th><th>الاسم</th><th>المنشورات</th><th>المتوسط</th><th>التصنيف</th><th>التقدم</th></tr></thead>
+                            <tbody id="leaderboard-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div class="modal-overlay" id="marketer-modal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title">إضافة / تعديل مسوق</h3><button class="modal-close" onclick="closeModal('marketer-modal')">&times;</button></div>
+            <form id="marketer-form" onsubmit="saveMarketer(event)">
+                <input type="hidden" id="marketer-id">
+                <div class="form-group"><label class="form-label">الاسم *</label><input type="text" class="form-input" id="marketer-name" required></div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">هدف TikTok</label><input type="number" class="form-input" id="marketer-target-tt" value="15" min="0"></div>
+                    <div class="form-group"><label class="form-label">هدف Instagram</label><input type="number" class="form-input" id="marketer-target-ig" value="15" min="0"></div>
+                </div>
+                <div class="form-group"><label class="form-label"><input type="checkbox" id="marketer-active" checked> نشط</label></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;"><button type="button" class="btn btn-dark" onclick="closeModal('marketer-modal')">إلغاء</button><button type="submit" class="btn btn-gold">حفظ</button></div>
+            </form>
+        </div>
+    </div>
+    <div class="modal-overlay" id="account-modal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title">إضافة / تعديل حساب</h3><button class="modal-close" onclick="closeModal('account-modal')">&times;</button></div>
+            <form id="account-form" onsubmit="saveAccount(event)">
+                <input type="hidden" id="account-id">
+                <div class="form-group"><label class="form-label">الاسم *</label><input type="text" class="form-input" id="account-name" required></div>
+                <div class="form-group"><label class="form-label">المنصة *</label><select class="form-select" id="account-platform" required><option value="TikTok">TikTok</option><option value="Instagram">Instagram</option></select></div>
+                <div class="form-group"><label class="form-label">المسوق *</label><select class="form-select" id="account-marketer" required></select></div>
+                <div class="form-group"><label class="form-label"><input type="checkbox" id="account-active" checked> نشط</label></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;"><button type="button" class="btn btn-dark" onclick="closeModal('account-modal')">إلغاء</button><button type="submit" class="btn btn-gold">حفظ</button></div>
+            </form>
+        </div>
+    </div>
+    <div class="modal-overlay" id="report-modal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title">إضافة تقرير</h3><button class="modal-close" onclick="closeModal('report-modal')">&times;</button></div>
+            <form id="report-form" onsubmit="saveReport(event)">
+                <input type="hidden" id="report-id">
+                <div class="form-group"><label class="form-label">التاريخ *</label><input type="date" class="form-input" id="report-date" required></div>
+                <div class="form-group"><label class="form-label">المسوق *</label><select class="form-select" id="report-marketer" required onchange="loadReportAccounts()"><option value="">اختر</option></select></div>
+                <div class="form-group"><label class="form-label">الحساب *</label><select class="form-select" id="report-account" required onchange="showAccountPlatformFields()"><option value="">اختر</option></select></div>
+                <div id="tiktok-fields" style="display: none;">
+                    <div class="platform-section platform-tiktok">
+                        <div class="platform-title title-tiktok"><i class="fab fa-tiktok"></i> TikTok</div>
+                        <div class="grid grid-2">
+                            <div class="form-group"><label class="form-label">Morning</label><input type="number" class="form-input" id="report-morning-tt" value="0" min="0"></div>
+                            <div class="form-group"><label class="form-label">Scheduled</label><input type="number" class="form-input" id="report-scheduled-tt" value="0" min="0"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="instagram-fields" style="display: none;">
+                    <div class="platform-section platform-instagram">
+                        <div class="platform-title title-instagram"><i class="fab fa-instagram"></i> Instagram</div>
+                        <div class="grid grid-2">
+                            <div class="form-group"><label class="form-label">Morning</label><input type="number" class="form-input" id="report-morning-ig" value="0" min="0"></div>
+                            <div class="form-group"><label class="form-label">Scheduled</label><input type="number" class="form-input" id="report-scheduled-ig" value="0" min="0"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">Image Designs</label><input type="number" class="form-input" id="report-images" value="0" min="0"></div>
+                    <div class="form-group"><label class="form-label">AI Videos</label><input type="number" class="form-input" id="report-videos" value="0" min="0"></div>
+                </div>
+                <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="report-notes"></textarea></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;"><button type="button" class="btn btn-dark" onclick="closeModal('report-modal')">إلغاء</button><button type="submit" class="btn btn-gold">حفظ</button></div>
+            </form>
+        </div>
+    </div>
+    <script>
+        // ==================== SUPABASE CONFIG ====================
+        // REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
+        let supabaseClient = null;
+        let currentUser = null;
+
+        function initSupabase() {
+            try {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase initialized');
+                return true;
+            } catch (e) {
+                console.error('Supabase init failed:', e);
+                return false;
+            }
+        }
+
+        // ==================== AUTH ====================
+        async function doLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            if (!email || !password) { errorDiv.textContent = 'الرجاء إدخال البريد وكلمة المرور'; errorDiv.style.display = 'block'; return; }
+            showLoading(true);
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                currentUser = data.user;
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('user-email').textContent = currentUser.email;
+                errorDiv.style.display = 'none';
+                await initData();
+                refreshDashboard();
+            } catch (err) {
+                errorDiv.textContent = 'خطأ: ' + err.message;
+                errorDiv.style.display = 'block';
+            } finally { showLoading(false); }
+        }
+
+        async function doRegister() {
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const confirm = document.getElementById('register-confirm').value;
+            const errorDiv = document.getElementById('login-error');
+            if (!email || !password || !confirm) { errorDiv.textContent = 'الرجاء ملء جميع الحقول'; errorDiv.style.display = 'block'; return; }
+            if (password.length < 6) { errorDiv.textContent = 'كلمة المرور 6 أحرف على الأقل'; errorDiv.style.display = 'block'; return; }
+            if (password !== confirm) { errorDiv.textContent = 'كلمتا المرور غير متطابقتين'; errorDiv.style.display = 'block'; return; }
+            showLoading(true);
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) throw error;
+                errorDiv.textContent = 'تم إنشاء الحساب! سجل الدخول الآن.';
+                errorDiv.style.color = 'var(--success)';
+                errorDiv.style.display = 'block';
+                showLoginForm();
+            } catch (err) {
+                errorDiv.textContent = 'خطأ: ' + err.message;
+                errorDiv.style.display = 'block';
+            } finally { showLoading(false); }
+        }
+
+        async function doLogout() {
+            if (confirm('تسجيل الخروج؟')) {
+                await supabaseClient.auth.signOut();
+                currentUser = null;
+                location.reload();
+            }
+        }
+
+        function showLoginForm() { document.getElementById('login-form').style.display = 'block'; document.getElementById('register-form').style.display = 'none'; document.getElementById('login-error').style.display = 'none'; }
+        function showRegisterForm() { document.getElementById('login-form').style.display = 'none'; document.getElementById('register-form').style.display = 'block'; document.getElementById('login-error').style.display = 'none'; }
+
+        // ==================== DATA ====================
+        async function initData() {
+            const { data: marketers } = await supabaseClient.from('marketers').select('*');
+            if (!marketers || marketers.length === 0) {
+                await seedInitialData();
+            }
+        }
+
+        async function seedInitialData() {
+            const initialMarketers = [
+
+                { id: 1, name: 'Aya M', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 2, name: 'Khlood', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 3, name: 'Faten', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 4, name: 'Shrooq', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 5, name: 'Menna M', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 6, name: 'Merna', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 7, name: 'Huda', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 8, name: 'Dena', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 9, name: 'Basant', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 10, name: 'Yousef', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 11, name: 'Ahmes H', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 12, name: 'Mohamed H', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 13, name: 'Khaled', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 14, name: 'Loay', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 15, name: 'Abd-Elrhman', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() },
+                        { id: 16, name: 'Mohamed M', targetTikTok: 15, targetInstagram: 15, isActive: true, createdDate: new Date().toISOString() }
+            ];
+            const initialAccounts = [
+                { id: 1, name: 'Luxe Beauty', platform: 'TikTok', marketerId: 1, isActive: true },
+                        { id: 2, name: 'Luxe Beauty', platform: 'Instagram', marketerId: 1, isActive: true },
+                        { id: 3, name: 'Evora', platform: 'TikTok', marketerId: 2, isActive: true },
+                        { id: 4, name: 'Evora', platform: 'Instagram', marketerId: 2, isActive: true },
+                        { id: 5, name: 'Rayhana', platform: 'TikTok', marketerId: 3, isActive: true },
+                        { id: 6, name: 'Rayhana', platform: 'Instagram', marketerId: 3, isActive: true },
+                        { id: 7, name: 'Flora', platform: 'TikTok', marketerId: 3, isActive: true },
+                        { id: 8, name: 'Flora', platform: 'Instagram', marketerId: 3, isActive: true },
+                        { id: 9, name: 'Mozhela', platform: 'TikTok', marketerId: 4, isActive: true },
+                        { id: 10, name: 'Mozhela', platform: 'Instagram', marketerId: 4, isActive: true },
+                        { id: 11, name: 'Lace Wig', platform: 'TikTok', marketerId: 5, isActive: true },
+                        { id: 12, name: 'Lace Wig', platform: 'Instagram', marketerId: 5, isActive: true },
+                        { id: 13, name: 'Ageba', platform: 'TikTok', marketerId: 5, isActive: true },
+                        { id: 14, name: 'Ageba', platform: 'Instagram', marketerId: 5, isActive: true },
+                        { id: 15, name: 'Elite', platform: 'TikTok', marketerId: 6, isActive: true },
+                        { id: 16, name: 'Elite', platform: 'Instagram', marketerId: 6, isActive: true },
+                        { id: 17, name: 'Lus Wig', platform: 'TikTok', marketerId: 7, isActive: true },
+                        { id: 18, name: 'Lus Wig', platform: 'Instagram', marketerId: 7, isActive: true },
+                        { id: 19, name: 'Lajen', platform: 'TikTok', marketerId: 8, isActive: true },
+                        { id: 20, name: 'Lajen', platform: 'Instagram', marketerId: 8, isActive: true },
+                        { id: 21, name: 'Gamila', platform: 'TikTok', marketerId: 9, isActive: true },
+                        { id: 22, name: 'Gamila', platform: 'Instagram', marketerId: 9, isActive: true },
+                        { id: 23, name: 'Best Wig', platform: 'TikTok', marketerId: 10, isActive: true },
+                        { id: 24, name: 'Best Wig', platform: 'Instagram', marketerId: 10, isActive: true },
+                        { id: 25, name: 'Wigs Sale', platform: 'TikTok', marketerId: 11, isActive: true },
+                        { id: 26, name: 'Wigs Sale', platform: 'Instagram', marketerId: 11, isActive: true },
+                        { id: 27, name: 'Luxery Beauty', platform: 'TikTok', marketerId: 12, isActive: true },
+                        { id: 28, name: 'Luxery Beauty', platform: 'Instagram', marketerId: 12, isActive: true },
+                        { id: 29, name: 'Free Dom', platform: 'TikTok', marketerId: 13, isActive: true },
+                        { id: 30, name: 'Free Dom', platform: 'Instagram', marketerId: 13, isActive: true },
+                        { id: 31, name: 'Lorial', platform: 'TikTok', marketerId: 14, isActive: true },
+                        { id: 32, name: 'Lorial', platform: 'Instagram', marketerId: 14, isActive: true },
+                        { id: 33, name: 'Luxe Wig', platform: 'TikTok', marketerId: 15, isActive: true },
+                        { id: 34, name: 'Luxe Wig', platform: 'Instagram', marketerId: 15, isActive: true },
+                        { id: 35, name: 'Eshraqa', platform: 'TikTok', marketerId: 16, isActive: true },
+                        { id: 36, name: 'Eshraqa', platform: 'Instagram', marketerId: 16, isActive: true }
+            ];
+            for (const m of initialMarketers) { await supabaseClient.from('marketers').insert(m); }
+            for (const a of initialAccounts) { await supabaseClient.from('accounts').insert(a); }
+            showSyncStatus('تم إضافة البيانات الأولية!', 'success');
+        }
+
+        async function dbGet(table) {
+            const { data, error } = await supabaseClient.from(table).select('*');
+            if (error) { console.error('Error:', error); return []; }
+            return data || [];
+        }
+        async function dbInsert(table, record) {
+            const { data, error } = await supabaseClient.from(table).insert(record).select();
+            if (error) { console.error('Error:', error); return null; }
+            return data ? data[0] : null;
+        }
+        async function dbUpdate(table, id, record) {
+            const { data, error } = await supabaseClient.from(table).update(record).eq('id', id).select();
+            if (error) { console.error('Error:', error); return null; }
+            return data ? data[0] : null;
+        }
+        async function dbDelete(table, id) {
+            const { error } = await supabaseClient.from(table).delete().eq('id', id);
+            if (error) { console.error('Error:', error); return false; }
+            return true;
+        }
+
+        function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
+        function showSyncStatus(msg, type) {
+            const s = document.getElementById('sync-status');
+            s.textContent = msg; s.className = 'sync-status active sync-' + type;
+            setTimeout(() => s.classList.remove('active'), 3000);
+        }
+        function showPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            event.target.closest('.nav-link').classList.add('active');
+            if (pageId === 'marketers') loadMarketers();
+            if (pageId === 'accounts') loadAccounts();
+            if (pageId === 'daily-reports') { loadDailyReports(); loadReportFilterMarketers(); }
+            if (pageId === 'leaderboard') loadLeaderboard();
+            if (pageId === 'dashboard') refreshDashboard();
+            document.getElementById('sidebar').classList.remove('open');
+        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function openModal(modalId) { document.getElementById(modalId).classList.add('active'); if (modalId === 'account-modal') loadAccountMarketers(); if (modalId === 'report-modal') { loadReportMarketers(); document.getElementById('report-date').value = new Date().toISOString().split('T')[0]; } }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); document.getElementById(modalId).querySelector('form').reset(); document.getElementById('tiktok-fields').style.display = 'none'; document.getElementById('instagram-fields').style.display = 'none'; }
+
+        async function loadMarketers() {
+            const marketers = await dbGet('marketers');
+            document.getElementById('marketers-table-body').innerHTML = marketers.map(m => `
+                <tr><td>${m.id}</td><td>${m.name}</td><td>${m.targetTikTok}</td><td>${m.targetInstagram}</td>
+                <td><span class="badge ${m.isActive ? 'badge-active' : 'badge-inactive'}">${m.isActive ? 'نشط' : 'غير نشط'}</span></td>
+                <td>${new Date(m.createdDate).toLocaleDateString('ar-SA')}</td>
+                <td><button class="btn btn-sm btn-dark" onclick="editMarketer(${m.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteMarketer(${m.id})"><i class="fas fa-trash"></i></button></td></tr>
+            `).join('');
+        }
+        function filterMarketers() { const search = document.getElementById('marketer-search').value.toLowerCase(); document.querySelectorAll('#marketers-table-body tr').forEach(row => { row.style.display = row.cells[1].textContent.toLowerCase().includes(search) ? '' : 'none'; }); }
+        async function saveMarketer(e) {
+            e.preventDefault(); const id = document.getElementById('marketer-id').value;
+            const data = { name: document.getElementById('marketer-name').value, targetTikTok: parseInt(document.getElementById('marketer-target-tt').value) || 15, targetInstagram: parseInt(document.getElementById('marketer-target-ig').value) || 15, isActive: document.getElementById('marketer-active').checked, createdDate: new Date().toISOString() };
+            if (id) { await dbUpdate('marketers', id, data); } else { await dbInsert('marketers', data); }
+            closeModal('marketer-modal'); loadMarketers(); refreshDashboard();
+        }
+        async function editMarketer(id) { const m = (await dbGet('marketers')).find(x => x.id === id); document.getElementById('marketer-id').value = m.id; document.getElementById('marketer-name').value = m.name; document.getElementById('marketer-target-tt').value = m.targetTikTok; document.getElementById('marketer-target-ig').value = m.targetInstagram; document.getElementById('marketer-active').checked = m.isActive; openModal('marketer-modal'); }
+        async function deleteMarketer(id) { if (confirm('حذف المسوق؟')) { await dbDelete('marketers', id); loadMarketers(); refreshDashboard(); } }
+
+        async function loadAccounts() {
+            const accounts = await dbGet('accounts'); const marketers = await dbGet('marketers');
+            // Group accounts by name
+            const grouped = {};
+            accounts.forEach(a => {
+                if (!grouped[a.name]) {
+                    grouped[a.name] = { name: a.name, platforms: [], marketerId: a.marketerId, isActive: a.isActive, ids: [] };
+                }
+                grouped[a.name].platforms.push(a.platform);
+                grouped[a.name].ids.push(a.id);
+            });
+            document.getElementById('accounts-table-body').innerHTML = Object.values(grouped).map(g => {
+                const marketer = marketers.find(m => m.id === g.marketerId);
+                const platformBadges = g.platforms.map(p => {
+                    const color = p === 'TikTok' ? '#69C9D0' : '#E4405F';
+                    return `<span style="background: ${color}; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 4px;">${p}</span>`;
+                }).join('');
+                return `<tr><td>${g.ids[0]}</td><td><strong>${g.name}</strong></td><td>${platformBadges}</td><td>${marketer ? marketer.name : '-'}</td>
+                <td><span class="badge ${g.isActive ? 'badge-active' : 'badge-inactive'}">${g.isActive ? 'نشط' : 'غير نشط'}</span></td>
+                <td><button class="btn btn-sm btn-dark" onclick="editAccount(${g.ids[0]})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteAccountGroup('${g.name}')"><i class="fas fa-trash"></i></button></td></tr>`;
+            }).join('');
+        }
+        async function deleteAccountGroup(name) {
+            if (confirm('حذف الحساب ' + name + ' من جميع المنصات؟')) {
+                const accounts = await dbGet('accounts');
+                const toDelete = accounts.filter(a => a.name === name);
+                for (const a of toDelete) { await dbDelete('accounts', a.id); }
+                loadAccounts(); refreshDashboard();
+            }
+        }
+        function filterAccounts() { const search = document.getElementById('account-search').value.toLowerCase(); document.querySelectorAll('#accounts-table-body tr').forEach(row => { row.style.display = row.cells[1].textContent.toLowerCase().includes(search) ? '' : 'none'; }); }
+        async function loadAccountMarketers() { const marketers = await dbGet('marketers'); document.getElementById('account-marketer').innerHTML = marketers.filter(m => m.isActive).map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
+        async function saveAccount(e) {
+            e.preventDefault(); const id = document.getElementById('account-id').value;
+            const data = { name: document.getElementById('account-name').value, platform: document.getElementById('account-platform').value, marketerId: parseInt(document.getElementById('account-marketer').value), isActive: document.getElementById('account-active').checked };
+            if (id) { await dbUpdate('accounts', id, data); } else { await dbInsert('accounts', data); }
+            closeModal('account-modal'); loadAccounts(); refreshDashboard();
+        }
+        async function editAccount(id) { const a = (await dbGet('accounts')).find(x => x.id === id); document.getElementById('account-id').value = a.id; document.getElementById('account-name').value = a.name; document.getElementById('account-platform').value = a.platform; document.getElementById('account-active').checked = a.isActive; await loadAccountMarketers(); document.getElementById('account-marketer').value = a.marketerId; openModal('account-modal'); }
+        async function deleteAccount(id) { if (confirm('حذف الحساب؟')) { await dbDelete('accounts', id); loadAccounts(); refreshDashboard(); } }
+
+        async function loadReportMarketers() { const marketers = await dbGet('marketers'); document.getElementById('report-marketer').innerHTML = '<option value="">اختر</option>' + marketers.filter(m => m.isActive).map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
+        async function loadReportFilterMarketers() { const marketers = await dbGet('marketers'); document.getElementById('report-filter-marketer').innerHTML = '<option value="">الكل</option>' + marketers.filter(m => m.isActive).map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
+        async function loadReportAccounts() {
+            const marketerId = document.getElementById('report-marketer').value;
+            const accounts = (await dbGet('accounts')).filter(a => a.marketerId == marketerId && a.isActive);
+            const uniqueNames = [...new Set(accounts.map(a => a.name))];
+            document.getElementById('report-account').innerHTML = '<option value="">اختر</option>' + uniqueNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            document.getElementById('tiktok-fields').style.display = 'none';
+            document.getElementById('instagram-fields').style.display = 'none';
+        }
+        function showAccountPlatformFields() {
+            const accountName = document.getElementById('report-account').value;
+            const marketerId = document.getElementById('report-marketer').value;
+            if (!accountName || !marketerId) return;
+            dbGet('accounts').then(accounts => {
+                const filtered = accounts.filter(a => a.marketerId == marketerId && a.name === accountName && a.isActive);
+                document.getElementById('tiktok-fields').style.display = filtered.some(a => a.platform === 'TikTok') ? 'block' : 'none';
+                document.getElementById('instagram-fields').style.display = filtered.some(a => a.platform === 'Instagram') ? 'block' : 'none';
+            });
+        }
+
+        function calculateReportMetrics(report) {
+            const totalTikTok = report.morningTikTok + report.scheduledTikTok;
+            const totalInstagram = report.morningInstagram + report.scheduledInstagram;
+            const totalPosts = totalTikTok + totalInstagram;
+            const dailyTarget = 30;
+            const performancePercent = dailyTarget > 0 ? Math.round((totalPosts / dailyTarget) * 100) : 0;
+            let rating = 'Needs Follow Up', badgeClass = 'badge-followup';
+            if (performancePercent >= 100) { rating = 'Excellent'; badgeClass = 'badge-excellent'; }
+            else if (performancePercent >= 80) { rating = 'Good'; badgeClass = 'badge-good'; }
+            return { totalTikTok, totalInstagram, totalPosts, dailyTarget, performancePercent, rating, badgeClass };
+        }
+
+        async function loadDailyReports() {
+            const reports = await dbGet('daily_reports'); const marketers = await dbGet('marketers'); const accounts = await dbGet('accounts');
+            const filterDate = document.getElementById('report-filter-date').value;
+            const filterMarketer = document.getElementById('report-filter-marketer').value;
+            let filtered = reports;
+            if (filterDate) filtered = filtered.filter(r => r.reportDate === filterDate);
+            if (filterMarketer) filtered = filtered.filter(r => r.marketerId == filterMarketer);
+
+            // Group by date + account name (not by platform)
+            const grouped = {};
+            filtered.forEach(r => {
+                const a = accounts.find(x => x.id === r.accountId);
+                const accountName = a ? a.name : 'Unknown';
+                const key = r.reportDate + '_' + r.marketerId + '_' + accountName;
+                if (!grouped[key]) {
+                    grouped[key] = { reportDate: r.reportDate, marketerId: r.marketerId, accountName: accountName, morningTT: 0, scheduledTT: 0, morningIG: 0, scheduledIG: 0, totalPosts: 0, ids: [] };
+                }
+                grouped[key].morningTT += r.morningTikTok;
+                grouped[key].scheduledTT += r.scheduledTikTok;
+                grouped[key].morningIG += r.morningInstagram;
+                grouped[key].scheduledIG += r.scheduledInstagram;
+                grouped[key].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram;
+                grouped[key].ids.push(r.id);
+            });
+
+            document.getElementById('reports-table-body').innerHTML = Object.values(grouped).map(g => {
+                const m = marketers.find(x => x.id === g.marketerId);
+                const dailyTarget = 30;
+                const performancePercent = dailyTarget > 0 ? Math.round((g.totalPosts / dailyTarget) * 100) : 0;
+                let rating = 'Needs Follow Up', badgeClass = 'badge-followup';
+                if (performancePercent >= 100) { rating = 'Excellent'; badgeClass = 'badge-excellent'; }
+                else if (performancePercent >= 80) { rating = 'Good'; badgeClass = 'badge-good'; }
+                return `<tr><td>${g.reportDate}</td><td>${m ? m.name : '-'}</td><td><strong>${g.accountName}</strong></td><td>${g.morningTT}</td><td>${g.scheduledTT}</td><td>${g.morningIG}</td><td>${g.scheduledIG}</td><td><strong>${g.totalPosts}</strong></td><td>${dailyTarget}</td><td><strong>${performancePercent}%</strong></td><td><span class="badge ${badgeClass}">${rating}</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteReportGroup([${g.ids.join(',')}])"><i class="fas fa-trash"></i></button></td></tr>`;
+            }).join('');
+        }
+        async function deleteReportGroup(ids) {
+            if (confirm('حذف هذا التقرير؟')) {
+                for (const id of ids) { await dbDelete('daily_reports', id); }
+                loadDailyReports(); refreshDashboard();
+            }
+        }
+        function clearReportFilter() { document.getElementById('report-filter-date').value = ''; document.getElementById('report-filter-marketer').value = ''; loadDailyReports(); }
+        async function saveReport(e) {
+            e.preventDefault();
+            const reportDate = document.getElementById('report-date').value;
+            const marketerId = parseInt(document.getElementById('report-marketer').value);
+            const accountName = document.getElementById('report-account').value;
+            const allAccounts = (await dbGet('accounts')).filter(a => a.marketerId == marketerId && a.name === accountName && a.isActive);
+            const morningTT = parseInt(document.getElementById('report-morning-tt').value) || 0;
+            const morningIG = parseInt(document.getElementById('report-morning-ig').value) || 0;
+            const scheduledTT = parseInt(document.getElementById('report-scheduled-tt').value) || 0;
+            const scheduledIG = parseInt(document.getElementById('report-scheduled-ig').value) || 0;
+            const imageDesigns = parseInt(document.getElementById('report-images').value) || 0;
+            const aiVideos = parseInt(document.getElementById('report-videos').value) || 0;
+            const notes = document.getElementById('report-notes').value;
+            const tiktokAccount = allAccounts.find(a => a.platform === 'TikTok');
+            if (tiktokAccount && (morningTT > 0 || scheduledTT > 0)) {
+                await dbInsert('daily_reports', { reportDate, marketerId, accountId: tiktokAccount.id, morningTikTok: morningTT, morningInstagram: 0, scheduledTikTok: scheduledTT, scheduledInstagram: 0, imageDesigns: 0, aiVideos: 0, notes: notes + ' (TikTok)' });
+            }
+            const instaAccount = allAccounts.find(a => a.platform === 'Instagram');
+            if (instaAccount && (morningIG > 0 || scheduledIG > 0)) {
+                await dbInsert('daily_reports', { reportDate, marketerId, accountId: instaAccount.id, morningTikTok: 0, morningInstagram: morningIG, scheduledTikTok: 0, scheduledInstagram: scheduledIG, imageDesigns: imageDesigns, aiVideos: aiVideos, notes: notes + ' (Instagram)' });
+            }
+            closeModal('report-modal'); loadDailyReports(); refreshDashboard();
+        }
+        async function deleteReport(id) { if (confirm('حذف التقرير؟')) { await dbDelete('daily_reports', id); loadDailyReports(); refreshDashboard(); } }
+
+        async function refreshDashboard() {
+            const reports = await dbGet('daily_reports'); const marketers = await dbGet('marketers'); const accounts = await dbGet('accounts');
+            const today = new Date().toISOString().split('T')[0]; const currentMonth = new Date().getMonth() + 1; const currentYear = new Date().getFullYear();
+            const todayReports = reports.filter(r => r.reportDate === today);
+            const todayPosts = todayReports.reduce((sum, r) => sum + r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram, 0);
+            document.getElementById('dash-today-posts').textContent = todayPosts;
+            const monthReports = reports.filter(r => { const d = new Date(r.reportDate); return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear; });
+            const monthPosts = monthReports.reduce((sum, r) => sum + r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram, 0);
+            document.getElementById('dash-month-posts').textContent = monthPosts;
+            const monthUniqueDays = [...new Set(monthReports.map(r => r.reportDate))].length;
+            const monthAvg = monthUniqueDays > 0 ? Math.round((monthPosts / (monthUniqueDays * 30)) * 100) : 0;
+            document.getElementById('dash-month-avg').textContent = monthAvg + '%';
+            document.getElementById('dash-active-marketers').textContent = marketers.filter(m => m.isActive).length;
+            document.getElementById('dash-accounts-count').textContent = accounts.filter(a => a.isActive).length;
+            const marketerStats = {};
+            reports.forEach(r => { if (!marketerStats[r.marketerId]) marketerStats[r.marketerId] = { totalPosts: 0, count: 0 }; marketerStats[r.marketerId].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram; marketerStats[r.marketerId].count++; });
+            let bestMarketer = null, worstMarketer = null; let bestAvg = -1, worstAvg = 101;
+            Object.entries(marketerStats).forEach(([id, stats]) => { const avg = stats.count > 0 ? Math.round((stats.totalPosts / (stats.count * 30)) * 100) : 0; const marketer = marketers.find(m => m.id == id); if (marketer && marketer.isActive) { if (avg > bestAvg) { bestAvg = avg; bestMarketer = { ...marketer, avg, totalPosts: stats.totalPosts }; } if (avg < worstAvg) { worstAvg = avg; worstMarketer = { ...marketer, avg, totalPosts: stats.totalPosts }; } } });
+            document.getElementById('dash-best-marketer').innerHTML = bestMarketer ? `<div style="text-align: center; padding: 15px;"><div style="font-size: 2.5rem; color: var(--gold);"><i class="fas fa-crown"></i></div><div style="font-size: 1.3rem; color: var(--text-white); margin-top: 10px;">${bestMarketer.name}</div><div style="font-size: 1.5rem; color: var(--gold); font-weight: 700;">${bestMarketer.avg}%</div><div style="color: var(--success); font-weight: 600;">Excellent</div></div>` : '<div class="empty-state"><i class="fas fa-crown"></i><p>لا توجد بيانات</p></div>';
+            document.getElementById('dash-worst-marketer').innerHTML = worstMarketer ? `<div style="text-align: center; padding: 15px;"><div style="font-size: 2.5rem; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i></div><div style="font-size: 1.3rem; color: var(--text-white); margin-top: 10px;">${worstMarketer.name}</div><div style="font-size: 1.5rem; color: var(--danger); font-weight: 700;">${worstMarketer.avg}%</div><div style="color: var(--danger); font-weight: 600;">Needs Follow Up</div></div>` : '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>لا توجد بيانات</p></div>';
+        }
+
+        async function generateDailyReport() {
+            const date = document.getElementById('daily-report-date').value; if (!date) { alert('اختر التاريخ'); return; }
+            const reports = (await dbGet('daily_reports')).filter(r => r.reportDate === date); const marketers = await dbGet('marketers'); const accounts = await dbGet('accounts');
+            // Group by account name
+            const grouped = {};
+            reports.forEach(r => {
+                const a = accounts.find(x => x.id === r.accountId);
+                const name = a ? a.name : 'Unknown';
+                const key = r.marketerId + '_' + name;
+                if (!grouped[key]) { grouped[key] = { marketerId: r.marketerId, name: name, morningTT: 0, scheduledTT: 0, morningIG: 0, scheduledIG: 0, totalPosts: 0 }; }
+                grouped[key].morningTT += r.morningTikTok;
+                grouped[key].scheduledTT += r.scheduledTikTok;
+                grouped[key].morningIG += r.morningInstagram;
+                grouped[key].scheduledIG += r.scheduledInstagram;
+                grouped[key].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram;
+            });
+            let html = '<div class="table-container"><table class="data-table"><thead><tr><th>المسوق</th><th>الحساب</th><th>Morning TikTok</th><th>Scheduled TikTok</th><th>Morning Instagram</th><th>Scheduled Instagram</th><th>الإجمالي</th><th>الهدف</th><th>الأداء</th><th>التصنيف</th></tr></thead><tbody>';
+            Object.values(grouped).forEach(g => {
+                const m = marketers.find(x => x.id === g.marketerId);
+                const dailyTarget = 30;
+                const performancePercent = dailyTarget > 0 ? Math.round((g.totalPosts / dailyTarget) * 100) : 0;
+                let rating = 'Needs Follow Up', badgeClass = 'badge-followup';
+                if (performancePercent >= 100) { rating = 'Excellent'; badgeClass = 'badge-excellent'; }
+                else if (performancePercent >= 80) { rating = 'Good'; badgeClass = 'badge-good'; }
+                html += `<tr><td>${m ? m.name : '-'}</td><td><strong>${g.name}</strong></td><td>${g.morningTT}</td><td>${g.scheduledTT}</td><td>${g.morningIG}</td><td>${g.scheduledIG}</td><td><strong>${g.totalPosts}</strong></td><td>${dailyTarget}</td><td><strong>${performancePercent}%</strong></td><td><span class="badge ${badgeClass}">${rating}</span></td></tr>`;
+            });
+            html += '</tbody></table></div>'; document.getElementById('daily-report-result').innerHTML = html;
+        }
+
+        async function generateMonthlyReport() {
+            const month = parseInt(document.getElementById('monthly-report-month').value); const year = parseInt(document.getElementById('monthly-report-year').value);
+            const reports = (await dbGet('daily_reports')).filter(r => { const d = new Date(r.reportDate); return d.getMonth() + 1 === month && d.getFullYear() === year; });
+            const marketers = await dbGet('marketers');
+            const stats = {}; reports.forEach(r => { if (!stats[r.marketerId]) stats[r.marketerId] = { totalTikTok: 0, totalInstagram: 0, totalImages: 0, totalVideos: 0, totalPosts: 0, count: 0 }; stats[r.marketerId].totalTikTok += r.morningTikTok + r.scheduledTikTok; stats[r.marketerId].totalInstagram += r.morningInstagram + r.scheduledInstagram; stats[r.marketerId].totalImages += r.imageDesigns; stats[r.marketerId].totalVideos += r.aiVideos; stats[r.marketerId].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram; stats[r.marketerId].count++; });
+            let html = '<div class="table-container"><table class="data-table"><thead><tr><th>المسوق</th><th>TikTok</th><th>Instagram</th><th>الصور</th><th>فيديوهات AI</th><th>الإجمالي</th><th>المتوسط</th></tr></thead><tbody>';
+            Object.entries(stats).forEach(([id, s]) => { const m = marketers.find(x => x.id == id); const avg = s.count > 0 ? Math.round((s.totalPosts / (s.count * 30)) * 100) : 0; html += `<tr><td>${m ? m.name : '-'}</td><td>${s.totalTikTok}</td><td>${s.totalInstagram}</td><td>${s.totalImages}</td><td>${s.totalVideos}</td><td><strong>${s.totalPosts}</strong></td><td><strong>${avg}%</strong></td></tr>`; });
+            html += '</tbody></table></div>'; document.getElementById('monthly-report-result').innerHTML = html;
+        }
+
+        async function loadLeaderboard() {
+            const reports = await dbGet('daily_reports'); const marketers = await dbGet('marketers');
+            const stats = {}; reports.forEach(r => { if (!stats[r.marketerId]) stats[r.marketerId] = { totalPosts: 0, count: 0 }; stats[r.marketerId].totalPosts += r.morningTikTok + r.scheduledTikTok + r.morningInstagram + r.scheduledInstagram; stats[r.marketerId].count++; });
+            const leaderboard = Object.entries(stats).map(([id, s]) => { const m = marketers.find(x => x.id == id); const avg = s.count > 0 ? Math.round((s.totalPosts / (s.count * 30)) * 100) : 0; let rating = 'Needs Follow Up', badgeClass = 'badge-followup'; if (avg >= 100) { rating = 'Excellent'; badgeClass = 'badge-excellent'; } else if (avg >= 80) { rating = 'Good'; badgeClass = 'badge-good'; } return { ...m, totalPosts: s.totalPosts, avg, rating, badgeClass }; }).filter(x => x && x.isActive).sort((a, b) => b.avg - a.avg);
+            document.getElementById('leaderboard-table-body').innerHTML = leaderboard.map((m, i) => { const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : ''; const rankIcon = i === 0 ? '<i class="fas fa-crown"></i>' : i === 1 ? '<i class="fas fa-medal"></i>' : i === 2 ? '<i class="fas fa-medal"></i>' : (i + 1); return `<tr><td class="${rankClass}">${rankIcon}</td><td><strong>${m.name}</strong></td><td>${m.totalPosts}</td><td><strong>${m.avg}%</strong></td><td><span class="badge ${m.badgeClass}">${m.rating}</span></td><td><div class="progress-container"><div class="progress-bar ${m.avg >= 100 ? 'progress-excellent' : m.avg >= 80 ? 'progress-good' : 'progress-followup'}" style="width: ${Math.min(m.avg, 100)}%">${m.avg}%</div></div></td></tr>`; }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (SUPABASE_URL === 'https://your-project.supabase.co') {
+                document.getElementById('login-error').textContent = 'يرجى تكوين Supabase أولاً - انظر التعليمات في الكود';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+            initSupabase();
+            supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    currentUser = session.user;
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('user-email').textContent = currentUser.email;
+                    initData().then(() => {
+                        refreshDashboard();
+                        document.getElementById('report-filter-date').value = new Date().toISOString().split('T')[0];
+                        document.getElementById('daily-report-date').value = new Date().toISOString().split('T')[0];
+                        document.getElementById('monthly-report-month').value = new Date().getMonth() + 1;
+                        document.getElementById('monthly-report-year').value = new Date().getFullYear();
+                    });
+                }
+            });
+            document.getElementById('login-password').addEventListener('keypress', function(e) { if (e.key === 'Enter') doLogin(); });
+        });
+    </script>
+</body>
+</html>
